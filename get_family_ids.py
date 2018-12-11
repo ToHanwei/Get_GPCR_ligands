@@ -20,6 +20,7 @@ def get_family_id(url):
 
 
 def dump_data(data, file_name):
+	"""save python object to file"""
 	output = open(file_name, "wb")
 	dump(data, output)
 	output.close()
