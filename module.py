@@ -8,3 +8,4 @@ import pandas as pd
 from urllib import request
 from bs4 import BeautifulSoup
 from collections import defaultdict
+from get_ligands import *
