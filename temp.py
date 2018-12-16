@@ -91,7 +91,7 @@ def write_sheet(writer, tables, id_name, ligand_name):
 			drop_col = ["Unnamed: "+str(i) for i in range(1, 10)]
 			table_df = table_df.drop(drop_col, axis=1)
 			data_df = build_DataFrame(ligand_name, table_df)
-			data_df.to_excel(writer, sheet_name=id_name, index=False)
+			data_df.to_excel(writer, sheet_name=id_name, index=False, merge_cells=True)
 			print("Sheet name "+ligand_name+" is add")
 
 
@@ -108,7 +108,9 @@ def get_ligand_table(url_list, sub_dict):
 		#	os.mkdir(family_name)
 		#	os.chdir(family_name)
 		#	print("GPCR family "+family_name+" is begin")
+		if os.path.exists(file_name): os.remove(file_name)
 		writer = pd.ExcelWriter(file_name)
+		data = pd.DataFrame(cloumns=["receptor", "Ligand", "Sp.", "Action", "Affinity", "Units", "Reference", "Unnamed: 15"]
 		print("GPCR family "+family_name+" is begin")
 		for obj_id in objectId:
 			obj_id = str(obj_id)
@@ -155,7 +157,8 @@ def get_ligand_table(url_list, sub_dict):
 			refer_df["reference"] = refe_list
 			refer_df["link"] = link_list
 			refer_df["PMID"] = pmid_list
-			refer_df.to_excel(writer, sheet_name="reference", index=False)
+			refer_df.to_excel(writer, sheet_name=ligand_name+"_reference", index=False,
+							  merge_cells=True)
 			#writer.save()
 			#df = pd.concat(raw_list)
 			#df.to_csv("test.csv")
