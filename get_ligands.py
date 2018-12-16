@@ -18,7 +18,7 @@ def clear_tag(obj_name):
 	return(obj_name)
 
 
-def write_sheet(writer, tables, id_name, ligand_name):
+def write_sheet(writer, tables, id_name, receptor_name):
 	"""select table from and write to sheet"""
 	for table in tables:
 		table_id = table.get('id')
@@ -29,7 +29,7 @@ def write_sheet(writer, tables, id_name, ligand_name):
 			drop_col = ["Unnamed: "+str(i) for i in range(1, 10)]
 			table_df = table_df.drop(drop_col, axis=1)
 			table_df.to_excel(writer, sheet_name=id_name, index=False)
-			print("Sheet name "+ligand_name+" is add")
+			print("Sheet name "+receptor_name+" is add")
 
 
 
@@ -50,15 +50,16 @@ def get_ligand_table(url_list, sub_dict):
 			res = request.Request(url)
 			html_doc = request.urlopen(res).read()
 			soup = BeautifulSoup(html_doc, 'lxml')
-			ligand_name = str(soup.title).split("|")[0][7:]
-			ligand_name = clear_tag(ligand_name)
-			file_name = ligand_name + ".xlsx"
+			receptor_name = str(soup.title).split("|")[0][7:]
+			receptor_name = clear_tag(receptor_name)
+			file_name = receptor_name + ".xlsx"
+			print(receptor_name.replace(" receptor", ""))
 			writer = pd.ExcelWriter(file_name)
 			print(file_name+" is over")
 			tables = soup.select('table')
-			write_sheet(writer, tables, "agonists", ligand_name)
-			write_sheet(writer, tables, "antagonists", ligand_name)
-			write_sheet(writer, tables, "allosterics", ligand_name)
+			write_sheet(writer, tables, "agonists", receptor_name)
+			write_sheet(writer, tables, "antagonists", receptor_name)
+			write_sheet(writer, tables, "allosterics", receptor_name)
 			soup2 = BeautifulSoup(html_doc, 'html.parser')
 			divs = soup2.select('div')
 			refe_list, pmid_list, link_list = [], [], []

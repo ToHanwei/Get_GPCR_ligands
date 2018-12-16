@@ -73,6 +73,13 @@ def clear_tag(obj_name):
 	return(obj_name)
 
 
+def build_DataFrame(receptor, df):
+	"""add receptor column in first column of df"""
+	col = pd.DataFrame(np.array(len(df)*[receptor]), columns=["receptor"])
+	df_new = col.join(df)
+	return(df_new)
+
+
 def write_sheet(writer, tables, id_name, ligand_name):
 	"""select table from and write to sheet"""
 	for table in tables:
@@ -83,7 +90,8 @@ def write_sheet(writer, tables, id_name, ligand_name):
 			table_df = table_df.drop(drop_list, axis=0)
 			drop_col = ["Unnamed: "+str(i) for i in range(1, 10)]
 			table_df = table_df.drop(drop_col, axis=1)
-			table_df.to_excel(writer, sheet_name=id_name, index=False)
+			data_df = build_DataFrame(ligand_name, table_df)
+			data_df.to_excel(writer, sheet_name=id_name, index=False)
 			print("Sheet name "+ligand_name+" is add")
 
 
@@ -93,12 +101,15 @@ def get_ligand_table(url_list, sub_dict):
 	for familyId, objectId in sub_dict.items():
 		familyId, family_name = familyId.split("#")
 		family_name = clear_tag(family_name)
-		if os.path.exists(family_name):
-			os.chdir(family_name)
-		else:
-			os.mkdir(family_name)
-			os.chdir(family_name)
-			print("GPCR family "+family_name+" is begin")
+		file_name = family_name+".xlsx"
+		#if os.path.exists(family_name):
+		#	os.chdir(family_name)
+		#else:
+		#	os.mkdir(family_name)
+		#	os.chdir(family_name)
+		#	print("GPCR family "+family_name+" is begin")
+		writer = pd.ExcelWriter(file_name)
+		print("GPCR family "+family_name+" is begin")
 		for obj_id in objectId:
 			obj_id = str(obj_id)
 			url = url_list[0]+obj_id+url_list[1]+familyId+url_list[2]
@@ -107,9 +118,9 @@ def get_ligand_table(url_list, sub_dict):
 			soup = BeautifulSoup(html_doc, 'lxml')
 			ligand_name = str(soup.title).split("|")[0][7:]
 			ligand_name = clear_tag(ligand_name)
-			file_name = ligand_name + ".xlsx"
-			writer = pd.ExcelWriter(file_name)
-			print(file_name+" is over")
+			#file_name = ligand_name + ".xlsx"
+			#writer = pd.ExcelWriter(file_name)
+			#print(file_name+" is over")
 			tables = soup.select('table')
 			write_sheet(writer, tables, "agonists", ligand_name)
 			write_sheet(writer, tables, "antagonists", ligand_name)
@@ -145,14 +156,16 @@ def get_ligand_table(url_list, sub_dict):
 			refer_df["link"] = link_list
 			refer_df["PMID"] = pmid_list
 			refer_df.to_excel(writer, sheet_name="reference", index=False)
-			writer.save()
+			#writer.save()
 			#df = pd.concat(raw_list)
 			#df.to_csv("test.csv")
-		os.chdir("../")
+		#os.chdir("../")
+		writer.save()
+		print("GPCR family "+family_name+" is over")
         
 
 def main():
-	GPCRs_LIGAND_DIR = "./CPCRs_ligand"
+	GPCRs_LIGAND_DIR = "./GPCRs_ligand"
 	gpcrs_url = "http://www.guidetoimmunopharmacology.org/GRAC/ReceptorFamiliesForward?type=GPCR"
 	family_url = "http://www.guidetoimmunopharmacology.org/GRAC/FamilyDisplayForward?familyId="
 	protein_url = ["http://www.guidetoimmunopharmacology.org/GRAC/ObjectDisplayForward?objectId=", 
@@ -163,13 +176,10 @@ def main():
 		os.mkdir(GPCRs_LIGAND_DIR)
 		os.chdir(GPCRs_LIGAND_DIR)
 	#family_ids = get_family_id(gpcrs_url)
-	#family_ids = [1, 2, 3, 17, 4, 6, 7, 8, 9, 10, 11, 12, 13, 338, 14, 15, 25, 5, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 114, 33, 48, 34, 35, 36, 135, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 50, 51, 447, 52, 53, 55, 56, 57, 58, 59, 54, 60, 61, 446, 62, 63, 64, 65, 66, 67]
 	#subfamily_dict = get_subfamily_id(family_url, family_ids)
-	#subfamily_dict = {"1#5-Hydroxytryptamine": [1]}
-	infile = open("subfamily_data.pkl", "rb")
+	infile = open("../subfamily_data.pkl", "rb")
 	subfamily_dict = pickle.load(infile)
 	infile.close()
-	#subfamily_dict = {'1#5-Hydroxytryptamine_receptors': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 648, 11, 12], '2#Acetylcholine_receptors_(muscarinic)': [13, 14, 15, 16, 17], '3#Adenosine_receptors': [18, 19, 20, 21], '17#Adhesion_Class_GPCRs': [197, 198, 199, 174, 175, 176, 178, 179, 180, 202, 204, 182, 183, 184, 185, 177, 190, 191, 193, 195, 196, 186, 187, 188, 192, 194, 200, 201, 206, 207, 208, 181, 189], '4#Adrenoceptors': [22, 23, 24, 25, 26, 27, 28, 29, 30]}
 	get_ligand_table(protein_url, subfamily_dict)
     
 
