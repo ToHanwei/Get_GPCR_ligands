@@ -95,6 +95,32 @@ def write_sheet(writer, tables, id_name, ligand_name):
 			print("Sheet name "+ligand_name+" is add")
 
 
+def drop_blank(ser):
+	for i in range(len(ser)):
+		try:
+			ser[i] = ser[i].replace(" ", "")
+		except AttributeError as e:
+			pass
+	return(ser)
+
+
+def merge_DataFrame(data_frame, tables, id_name, ligand_name):
+	"""select table from and write to sheet"""
+	for table in tables:
+		table_id = table.get('id')
+		if table_id == id_name:
+			table_df = pd.concat(pd.read_html(table.prettify()))
+			#drop_list = [i for i in table_df.index if i%2!=0]
+			#table_df = table_df.drop(drop_list, axis=0)
+			drop_col = ["Unnamed: "+str(i) for i in range(1, 10)]
+			drop_col.append("Unnamed: 15")
+			table_df = table_df.drop(drop_col, axis=1)
+			data_df = build_DataFrame(ligand_name, table_df)
+			drop_list = [i for i in data_df.index if i%2!=0]
+			data_df = data_df.drop(drop_list, axis=0).astype(object)
+			data_frame = data_frame.merge(data_df, how="outer").astype(object)
+	return(data_frame)
+
 
 def get_ligand_table(url_list, sub_dict):
 	"""get GPCR's ligand information from web"""
@@ -110,7 +136,10 @@ def get_ligand_table(url_list, sub_dict):
 		#	print("GPCR family "+family_name+" is begin")
 		if os.path.exists(file_name): os.remove(file_name)
 		writer = pd.ExcelWriter(file_name)
-		data = pd.DataFrame(cloumns=["receptor", "Ligand", "Sp.", "Action", "Affinity", "Units", "Reference", "Unnamed: 15"]
+		data_agon = pd.DataFrame(columns=["receptor", "Ligand", "Sp.", "Action", "Affinity", "Units", "Reference"], dtype="object")
+		data_anta = pd.DataFrame(columns=["receptor", "Ligand", "Sp.", "Action", "Affinity", "Units", "Reference"], dtype="object")
+		data_allo = pd.DataFrame(columns=["receptor", "Ligand", "Sp.", "Action", "Affinity", "Units", "Reference"], dtype="object")
+		data_refe = pd.DataFrame(columns=["reference", "link", "PMID"], dtype="object")
 		print("GPCR family "+family_name+" is begin")
 		for obj_id in objectId:
 			obj_id = str(obj_id)
@@ -124,13 +153,19 @@ def get_ligand_table(url_list, sub_dict):
 			#writer = pd.ExcelWriter(file_name)
 			#print(file_name+" is over")
 			tables = soup.select('table')
-			write_sheet(writer, tables, "agonists", ligand_name)
-			write_sheet(writer, tables, "antagonists", ligand_name)
-			write_sheet(writer, tables, "allosterics", ligand_name)
+			data_agon = merge_DataFrame(data_agon, tables, "agonists", ligand_name)
+			#print(data_agon)
+			data_anta = merge_DataFrame(data_anta, tables, "antagonists", ligand_name)
+			#print(data_anta)
+			data_allo = merge_DataFrame(data_allo, tables, "allosterics", ligand_name)
+			#print(data_allo)
+			#write_sheet(writer, tables, "agonists", ligand_name)
+			#write_sheet(writer, tables, "antagonists", ligand_name)
+			#write_sheet(writer, tables, "allosterics", ligand_name)
 			soup2 = BeautifulSoup(html_doc, 'html.parser')
 			divs = soup2.select('div')
 			refe_list, pmid_list, link_list = [], [], []
-			refer_df = pd.DataFrame()
+			refer_df = pd.DataFrame(dtype="object")
 			for div in divs:
 				div_id = div.get('id')
 				if div_id != "refs": continue
@@ -157,13 +192,27 @@ def get_ligand_table(url_list, sub_dict):
 			refer_df["reference"] = refe_list
 			refer_df["link"] = link_list
 			refer_df["PMID"] = pmid_list
-			refer_df.to_excel(writer, sheet_name=ligand_name+"_reference", index=False,
-							  merge_cells=True)
+			refer_df = build_DataFrame(ligand_name, refer_df)
+			data_refe = data_refe.merge(refer_df, how="outer")
+			#refer_df.to_excel(writer, sheet_name=ligand_name+"_reference", index=False,
+			#				  merge_cells=True)
 			#writer.save()
-			#df = pd.concat(raw_list)
-			#df.to_csv("test.csv")
-		#os.chdir("../")
+		print(data_agon.dtypes)
+		print(data_anta.dtypes)
+		print(data_allo.dtypes)
+		print(data_refe.dtypes)
+		data_agon["Units"] = drop_blank(data_agon["Units"])
+		data_agon["Reference"] = drop_blank(data_agon["Reference"])
+		data_anta["Units"] = drop_blank(data_anta["Units"])
+		data_anta["Reference"] = drop_blank(data_anta["Reference"])
+		data_allo["Units"] = drop_blank(data_allo["Units"])
+		data_allo["Reference"] = drop_blank(data_allo["Reference"])
+		data_agon.to_excel(writer, sheet_name="agonists", index=False)
+		data_anta.to_excel(writer, sheet_name="antagonists", index=False)
+		data_allo.to_excel(writer, sheet_name="allosterics", index=False)
+		data_refe.to_excel(writer, sheet_name="reference", index=False)
 		writer.save()
+		#os.chdir("../")
 		print("GPCR family "+family_name+" is over")
         
 
