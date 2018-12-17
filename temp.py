@@ -238,7 +238,18 @@ def get_ligands(url, ligand_ids):
 	"""obtain ligand table from web"""
 	for ligand in ligand_ids:
 		url += str(ligand)
-		
+		res = request.Request(url)
+		html_doc = request.urlopen(res).read()
+		soup = BeautifulSoup(html_doc, "lxml")
+		tables = soup.select("table")
+		for table in tables:
+			if table.get("id") != "Selectivity at GPCRs": continue
+			table_df = pd.concat(pd.read_html(table.prettify()))
+			drop_row = [i for i in range(len(table_df)) if i%2!=0]
+			table_df = table_df.drop(drop_row, axis=0)
+			drop_col = ["Unnamed: 1", "Unnamed: 2", "Unnamed: 10"]
+			table_df = table_df.drop(drop_col, axis=1)
+			table_df.to_excel("test.xlsx", index=False)
 
 
 def main():
@@ -261,7 +272,7 @@ def main():
 
 
 def main2():
-	LIGANDs_GPCR_DIR = "./GPCRs_ligand"
+	LIGANDs_GPCR_DIR = "./LIGAND"
 	ligand_url = "http://www.guidetopharmacology.org/GRAC/LigandDisplayForward?tab=biology&ligandId="
 	if os.path.exists(LIGANDs_GPCR_DIR):
 		os.chdir(LIGANDs_GPCR_DIR)
