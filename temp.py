@@ -197,10 +197,6 @@ def get_ligand_table(url_list, sub_dict):
 			#refer_df.to_excel(writer, sheet_name=ligand_name+"_reference", index=False,
 			#				  merge_cells=True)
 			#writer.save()
-		print(data_agon.dtypes)
-		print(data_anta.dtypes)
-		print(data_allo.dtypes)
-		print(data_refe.dtypes)
 		data_agon["Units"] = drop_blank(data_agon["Units"])
 		data_agon["Reference"] = drop_blank(data_agon["Reference"])
 		data_anta["Units"] = drop_blank(data_anta["Units"])
