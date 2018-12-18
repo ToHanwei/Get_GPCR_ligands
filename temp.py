@@ -137,7 +137,7 @@ def get_ligand_ids(tables):
 	return(out_list)
 			
 
-def get_ligand_table(url_list, sub_dict):
+def get_receptor_table(url_list, sub_dict):
 	"""get GPCR's ligand information from web"""
 	ligand_ids = []
 	for familyId, objectId in sub_dict.items():
@@ -165,20 +165,11 @@ def get_ligand_table(url_list, sub_dict):
 			soup = BeautifulSoup(html_doc, 'lxml')
 			receptor_name = str(soup.title).split("|")[0][7:]
 			receptor_name = clear_tag(receptor_name)
-			#file_name = receptor_name + ".xlsx"
-			#writer = pd.ExcelWriter(file_name)
-			#print(file_name+" is over")
 			tables = soup.select('table')
 			ligand_ids.extend(get_ligand_ids(tables))
 			data_agon = merge_DataFrame(data_agon, tables, "agonists", receptor_name)
-			#print(data_agon)
 			data_anta = merge_DataFrame(data_anta, tables, "antagonists", receptor_name)
-			#print(data_anta)
 			data_allo = merge_DataFrame(data_allo, tables, "allosterics", receptor_name)
-			#print(data_allo)
-			#write_sheet(writer, tables, "agonists", receptor_name)
-			#write_sheet(writer, tables, "antagonists", receptor_name)
-			#write_sheet(writer, tables, "allosterics", receptor_name)
 			soup2 = BeautifulSoup(html_doc, 'html.parser')
 			divs = soup2.select('div')
 			refe_list, pmid_list, link_list = [], [], []
@@ -233,10 +224,11 @@ def get_ligand_table(url_list, sub_dict):
 	ligand_out.close()  
 
 
-def get_ligands(url, ligand_ids):
+def get_ligands(url, url2, ligand_ids):
 	"""obtain ligand table from web"""
 	data = pd.DataFrame(columns=["Ligand", "Target", "Sp.", "Type", "Action", "Affinity", 
 								 "Units",  "Reference"])
+	data_ref = pd.DataFrame(columns=['ligand'])
 	for ligand in ligand_ids:
 		ligand_url = url + str(ligand)
 		res = request.Request(ligand_url)
@@ -255,16 +247,28 @@ def get_ligands(url, ligand_ids):
 			table_df = table_df.drop(drop_row, axis=0)
 			drop_col = ["Unnamed: 1", "Unnamed: 2", "Unnamed: 10", "Concentration range (M)"]
 			table_df = table_df.drop(drop_col, axis=1)
-			index = np.array(range(len(table_df)))*2
+			table_df.index = range(len(table_df))
+			#index = np.array(range(len(table_df)))*2
 			col = pd.DataFrame(np.array(len(table_df)*[ligand_name]), 
-							   index=index, columns=["Ligand"])
+							   columns=["Ligand"])
 			fram = col.join(table_df)
 			data = data.append(fram)
-			if os.path.exists("test.xlsx"): os.remove("test.xlsx")
-			#data.to_excel("test.xlsx", index=False)
+		#get reference of ligand
+		ligand_ref = url2 + str(ligand)
+		res2 = request.Request(ligand_ref)
+		html_doc2 = request.urlopen(res2).read()
+		soup2 = BeautifulSoup(html_doc2, "lxml")
+		tables2 = soup2.select("table")
+		for table2 in tables2:
+			if table2.get("class")[0] != "receptor_data_tables": continue
+			table2_ref = pd.concat(pd.read_html(table2.prettify()))
+			col_ref = pd.DataFrame(np.array(len(table2_ref)*[ligand_name]), columns=['ligand'])
+			data_ref = data_ref.append(col_ref.join(table2_ref)[1:])
+			data_ref.to_excel("ttt.xlsx", index=False)
 	data["Units"] = drop_blank(data["Units"])
 	data["Reference"] = drop_blank(data["Reference"])
-	return(data)
+	data_ref.columns = ["ligand", "References"]
+	return(data, data_ref)
 
 
 def main():
@@ -283,24 +287,27 @@ def main():
 	infile = open("../subfamily_data.pkl", "rb")
 	subfamily_dict = pickle.load(infile)
 	infile.close()
-	get_ligand_table(protein_url, subfamily_dict)
+	get_receptor_table(protein_url, subfamily_dict)
 
 
 def main2():
 	LIGANDs_GPCR_DIR = "./LIGAND"
 	ligand_url = "http://www.guidetopharmacology.org/GRAC/LigandDisplayForward?tab=biology&ligandId="
+	ligand_ref = "http://www.guidetopharmacology.org/GRAC/LigandDisplayForward?tab=refs&ligandId="
 	if os.path.exists(LIGANDs_GPCR_DIR):
 		os.chdir(LIGANDs_GPCR_DIR)
 	else:
 		os.mkdir(LIGANDs_GPCR_DIR)
 		os.chdir(LIGANDs_GPCR_DIR)
-	#family_ids = get_family_id(gpcrs_url)
-	#subfamily_dict = get_subfamily_id(family_url, family_ids)
+	writer = pd.ExcelWriter(LIGANDs_GPCR_DIR)
 	infile = open("../ligand_ids.pkl", "rb")
 	ligand_ids = pickle.load(infile)
 	infile.close()
-	get_ligands(ligand_url, ligand_ids)
-    
+	gpcr_ligand, ligand_ref = get_ligands(ligand_url, ligand_ref, ligand_ids)
+	gpcr_ligand.to_excel("GPCR_ligands.xlsx", index=False)
+    gpcr_ligand.to_excel(writer, sheet_name="ligands", index=False)
+	ligand_ref.to_excel(writer, sheet_name="references", index=False)
+	write.save()
 
 
 if __name__ == "__main__":
