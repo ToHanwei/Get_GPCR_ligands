@@ -9,6 +9,7 @@ import re
 import pickle
 import numpy as np
 import pandas as pd
+from time import sleep
 from urllib import request
 from bs4 import BeautifulSoup
 from collections import defaultdict
@@ -241,6 +242,10 @@ def get_ligands(url, ligand_ids):
 		res = request.Request(url)
 		html_doc = request.urlopen(res).read()
 		soup = BeautifulSoup(html_doc, "lxml")
+		if soup.title: 
+			title = soup.title.string
+			ligand_name = title.split("|")[0].strip()
+			print(ligand_name)
 		tables = soup.select("table")
 		for table in tables:
 			if table.get("id") != "Selectivity at GPCRs": continue
@@ -249,7 +254,9 @@ def get_ligands(url, ligand_ids):
 			table_df = table_df.drop(drop_row, axis=0)
 			drop_col = ["Unnamed: 1", "Unnamed: 2", "Unnamed: 10"]
 			table_df = table_df.drop(drop_col, axis=1)
-			table_df.to_excel("test.xlsx", index=False)
+			#table_df.to_excel("test.xlsx", index=False)
+		sleep(3)
+	return(table_df)
 
 
 def main():
