@@ -228,7 +228,7 @@ def get_ligands(url, url2, ligand_ids):
 	"""obtain ligand table from web"""
 	data = pd.DataFrame(columns=["Ligand", "Target", "Sp.", "Type", "Action", "Affinity", 
 								 "Units",  "Reference"])
-	data_ref = pd.DataFrame(columns=['ligand'])
+	data_ref = pd.DataFrame(columns=['ligand', '0'])
 	for ligand in ligand_ids:
 		ligand_url = url + str(ligand)
 		res = request.Request(ligand_url)
@@ -264,7 +264,6 @@ def get_ligands(url, url2, ligand_ids):
 			table2_ref = pd.concat(pd.read_html(table2.prettify()))
 			col_ref = pd.DataFrame(np.array(len(table2_ref)*[ligand_name]), columns=['ligand'])
 			data_ref = data_ref.append(col_ref.join(table2_ref)[1:])
-			data_ref.to_excel("ttt.xlsx", index=False)
 	data["Units"] = drop_blank(data["Units"])
 	data["Reference"] = drop_blank(data["Reference"])
 	data_ref.columns = ["ligand", "References"]
@@ -299,15 +298,14 @@ def main2():
 	else:
 		os.mkdir(LIGANDs_GPCR_DIR)
 		os.chdir(LIGANDs_GPCR_DIR)
-	writer = pd.ExcelWriter(LIGANDs_GPCR_DIR)
+	writer = pd.ExcelWriter("Ligands_GPCR.xlsx")
 	infile = open("../ligand_ids.pkl", "rb")
 	ligand_ids = pickle.load(infile)
-	infile.close()
 	gpcr_ligand, ligand_ref = get_ligands(ligand_url, ligand_ref, ligand_ids)
-	gpcr_ligand.to_excel("GPCR_ligands.xlsx", index=False)
-    gpcr_ligand.to_excel(writer, sheet_name="ligands", index=False)
+	gpcr_ligand.to_excel(writer, sheet_name="ligands", index=False)
 	ligand_ref.to_excel(writer, sheet_name="references", index=False)
-	write.save()
+	writer.save()
+	infile.close()
 
 
 if __name__ == "__main__":
