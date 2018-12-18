@@ -63,13 +63,11 @@ def clear_tag(obj_name):
 	"""Search and claer pair tag"""
 	obj_name = obj_name.strip()
 	start = re.compile("<.*?>")
-	end = re.compile("</.*?>")
-	tag_start = re.search(start, obj_name)
-	tag_end = re.search(end, obj_name)
-	if tag_start and tag_end:
-		tag_start = tag_start.group()
-		tag_end = tag_end.group()
-		obj_name = obj_name.replace(tag_start, "").replace(tag_end, "")
+	tag = re.search(start, obj_name)
+	while tag:
+		tag = tag.group()
+		obj_name = obj_name.replace(tag, "")
+		tag = re.search(start, obj_name)
 	obj_name = obj_name.replace("/", "_")
 	return(obj_name)
 
@@ -237,14 +235,17 @@ def get_ligand_table(url_list, sub_dict):
 
 def get_ligands(url, ligand_ids):
 	"""obtain ligand table from web"""
+	data = pd.DataFrame(columns=["Ligand", "Target", "Sp.", "Type", "Action", "Affinity", 
+								 "Units",  "Reference"])
 	for ligand in ligand_ids:
-		url += str(ligand)
-		res = request.Request(url)
+		ligand_url = url + str(ligand)
+		res = request.Request(ligand_url)
 		html_doc = request.urlopen(res).read()
 		soup = BeautifulSoup(html_doc, "lxml")
 		if soup.title: 
 			title = soup.title.string
 			ligand_name = title.split("|")[0].strip()
+			ligand_name = clear_tag(ligand_name)
 			print(ligand_name)
 		tables = soup.select("table")
 		for table in tables:
@@ -252,11 +253,18 @@ def get_ligands(url, ligand_ids):
 			table_df = pd.concat(pd.read_html(table.prettify()))
 			drop_row = [i for i in range(len(table_df)) if i%2!=0]
 			table_df = table_df.drop(drop_row, axis=0)
-			drop_col = ["Unnamed: 1", "Unnamed: 2", "Unnamed: 10"]
+			drop_col = ["Unnamed: 1", "Unnamed: 2", "Unnamed: 10", "Concentration range (M)"]
 			table_df = table_df.drop(drop_col, axis=1)
-			#table_df.to_excel("test.xlsx", index=False)
-		sleep(3)
-	return(table_df)
+			index = np.array(range(len(table_df)))*2
+			col = pd.DataFrame(np.array(len(table_df)*[ligand_name]), 
+							   index=index, columns=["Ligand"])
+			fram = col.join(table_df)
+			data = data.append(fram)
+			if os.path.exists("test.xlsx"): os.remove("test.xlsx")
+			#data.to_excel("test.xlsx", index=False)
+	data["Units"] = drop_blank(data["Units"])
+	data["Reference"] = drop_blank(data["Reference"])
+	return(data)
 
 
 def main():
