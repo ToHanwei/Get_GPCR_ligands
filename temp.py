@@ -95,6 +95,7 @@ def write_sheet(writer, tables, id_name, receptor_name):
 
 
 def drop_blank(ser):
+	#print(ser)
 	for i in range(len(ser)):
 		try:
 			ser[i] = ser[i].replace(" ", "")
@@ -228,8 +229,9 @@ def get_ligands(url, url2, ligand_ids):
 	"""obtain ligand table from web"""
 	data = pd.DataFrame(columns=["Ligand", "Target", "Sp.", "Type", "Action", "Affinity", 
 								 "Units",  "Reference"])
-	data_ref = pd.DataFrame(columns=['ligand', '0'])
+	data_ref = pd.DataFrame(columns=['ligand'])
 	for ligand in ligand_ids:
+		print(ligand)
 		ligand_url = url + str(ligand)
 		res = request.Request(ligand_url)
 		html_doc = request.urlopen(res).read()
@@ -251,7 +253,9 @@ def get_ligands(url, url2, ligand_ids):
 			#index = np.array(range(len(table_df)))*2
 			col = pd.DataFrame(np.array(len(table_df)*[ligand_name]), 
 							   columns=["Ligand"])
-			fram = col.join(table_df)
+			fram = col.join(table_df).astype(object)
+			fram["Units"] = drop_blank(fram["Units"])
+			fram["Reference"] = drop_blank(fram["Reference"])
 			data = data.append(fram)
 		#get reference of ligand
 		ligand_ref = url2 + str(ligand)
@@ -264,9 +268,11 @@ def get_ligands(url, url2, ligand_ids):
 			table2_ref = pd.concat(pd.read_html(table2.prettify()))
 			col_ref = pd.DataFrame(np.array(len(table2_ref)*[ligand_name]), columns=['ligand'])
 			data_ref = data_ref.append(col_ref.join(table2_ref)[1:])
+	data.index = range(len(data))
 	data["Units"] = drop_blank(data["Units"])
 	data["Reference"] = drop_blank(data["Reference"])
 	data_ref.columns = ["ligand", "References"]
+	print(data_ref)
 	return(data, data_ref)
 
 
