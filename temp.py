@@ -168,6 +168,7 @@ def get_receptor_table(url_list, sub_dict):
 			receptor_name = clear_tag(receptor_name)
 			tables = soup.select('table')
 			ligand_ids.extend(get_ligand_ids(tables))
+			uniport = get_uniport(tables)
 			data_agon = merge_DataFrame(data_agon, tables, "agonists", receptor_name)
 			data_anta = merge_DataFrame(data_anta, tables, "antagonists", receptor_name)
 			data_allo = merge_DataFrame(data_allo, tables, "allosterics", receptor_name)
@@ -315,4 +316,4 @@ def main2():
 
 
 if __name__ == "__main__":
-    main2()
+    main()
