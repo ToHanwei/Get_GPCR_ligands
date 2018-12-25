@@ -16,7 +16,7 @@ def main():
 		os.mkdir(GPCRs_LIGAND_DIR)
 		os.chdir(GPCRs_LIGAND_DIR)
 	infile.close()
-	get_ligand_table(protein_url, subfamily_dict)
+	get_receptors(protein_url, subfamily_dict)
     
 
 if __name__ == "__main__":
